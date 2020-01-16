@@ -4,8 +4,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:oministack_flutter_app/services/http_response.dart';
 
 import 'webViewPage.dart';
+
 
 class MyHomePage extends StatefulWidget {
   @override
@@ -13,30 +15,68 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  ApiConnection _apiConnection = ApiConnection();
+
   Position minhaPosicao;
 
   CameraPosition _kGooglePlex;
+
+  Map<String, Marker> _markers = {};
 
   Completer<GoogleMapController> _controller = Completer();
 
   Geolocator _geolocator = Geolocator();
 
-  _goToMyPos() async {
-    final GoogleMapController controller = await _controller.future;
-    controller.animateCamera(CameraUpdate.newCameraPosition(_kGooglePlex));
-  }
+  // _goToMyPos() async {
+  //   final GoogleMapController controller = await _controller.future;
+  //   controller.animateCamera(CameraUpdate.newCameraPosition(_kGooglePlex));
+  // }
 
   _getMyPos() async {
     await _geolocator.checkGeolocationPermissionStatus();
     var currentLocation = await _geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.best);
 
-    setState(() {
+    //setState(() {
       minhaPosicao = currentLocation;
       _kGooglePlex = CameraPosition(
         target: LatLng(minhaPosicao.latitude, minhaPosicao.longitude),
         zoom: 16.0,
       );
+
+      print(_kGooglePlex);
+    //});
+  }
+
+  _populateMarkers() async {
+    final apiRes = await _apiConnection.fetchDevs();
+    setState(() {
+
+      _getMyPos();
+      
+      _markers.clear();
+
+      for (var data in apiRes) {
+        final m = Marker(
+          markerId: MarkerId(data.sId),
+          position: LatLng(
+            data.location.coordinates[1],
+            data.location.coordinates[0],
+          ),
+          infoWindow: InfoWindow(    
+              title: data.name,
+              snippet: '${data.techs.join(', ')}',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  CupertinoPageRoute(
+                      builder: (context) => Perfil(
+                          url: 'https://github.com/${data.githubUsername}')),
+                );
+              }),
+        );
+        _markers[data.sId] = m;
+      }
     });
   }
 
@@ -65,35 +105,14 @@ class _MyHomePageState extends State<MyHomePage> {
               children: <Widget>[
                 GoogleMap(
                   mapType: MapType.normal,
-                  //myLocationEnabled: true,
                   zoomGesturesEnabled: true,
-                  myLocationButtonEnabled: false,
+                  myLocationButtonEnabled: true,
                   buildingsEnabled: true,
-                  onTap: (_) {
-                    print(_.latitude + _.longitude);
-                    _goToMyPos();
+                  onTap: (_) async{
+                    //print(_.latitude + _.longitude);
+                   //await _goToMyPos();
                   },
-                  markers: Set<Marker>.of(
-                    [
-                      Marker(
-                        markerId: MarkerId('marker_casa'),
-                        position: LatLng(
-                            minhaPosicao.latitude, minhaPosicao.longitude),
-                        infoWindow: InfoWindow(
-                            anchor: Offset.zero,
-                            title: 'Minha marca',
-                            snippet: 'Marca de algum lugar aí\n' +
-                                'MaisCoisaEscrita',
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                CupertinoPageRoute(
-                                    builder: (context) => Perfil()),
-                              );
-                            }),
-                      ),
-                    ],
-                  ),
+                  markers: _markers.values.toSet(),
                   initialCameraPosition: _kGooglePlex,
                   onMapCreated: (GoogleMapController controller) {
                     _controller.complete(controller);
@@ -142,7 +161,10 @@ class _MyHomePageState extends State<MyHomePage> {
                         child: FloatingActionButton(
                           elevation: 6.0,
                           child: Icon(Icons.gps_fixed),
-                          onPressed: () {},
+                          onPressed: () async {
+                            await _apiConnection.fetchDevs();
+                            _populateMarkers();
+                          },
                         ),
                       )
                     ],

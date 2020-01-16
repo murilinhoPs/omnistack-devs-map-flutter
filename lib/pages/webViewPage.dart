@@ -18,7 +18,7 @@ class _PerfilState extends State<Perfil> {
   final Completer<WebViewController> _controller =
       Completer<WebViewController>();
 
-  _PerfilState(@required this.url);
+  _PerfilState(this.url);
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +29,7 @@ class _PerfilState extends State<Perfil> {
         centerTitle: true,
       ),
       body: WebView(
-        initialUrl: 'https://github.com/murilinhoPs',
+        initialUrl: this.url,
         javascriptMode: JavascriptMode.unrestricted,
         onWebViewCreated: (WebViewController webViewController) {
           _controller.complete(webViewController);
