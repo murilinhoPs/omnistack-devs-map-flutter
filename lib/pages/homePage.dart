@@ -19,9 +19,17 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Completer<GoogleMapController> _controller = Completer();
 
+  Geolocator _geolocator = Geolocator();
+
+  _goToMyPos() async {
+    final GoogleMapController controller = await _controller.future;
+    controller.animateCamera(CameraUpdate.newCameraPosition(_kGooglePlex));
+  }
+
   _getMyPos() async {
-    var currentLocation = await Geolocator()
-        .getCurrentPosition(desiredAccuracy: LocationAccuracy.medium);
+    await _geolocator.checkGeolocationPermissionStatus();
+    var currentLocation = await _geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.best);
 
     setState(() {
       minhaPosicao = currentLocation;
@@ -57,8 +65,14 @@ class _MyHomePageState extends State<MyHomePage> {
               children: <Widget>[
                 GoogleMap(
                   mapType: MapType.normal,
-                  myLocationEnabled: true,
+                  //myLocationEnabled: true,
                   zoomGesturesEnabled: true,
+                  myLocationButtonEnabled: false,
+                  buildingsEnabled: true,
+                  onTap: (_) {
+                    print(_.latitude + _.longitude);
+                    _goToMyPos();
+                  },
                   markers: Set<Marker>.of(
                     [
                       Marker(
@@ -68,7 +82,8 @@ class _MyHomePageState extends State<MyHomePage> {
                         infoWindow: InfoWindow(
                             anchor: Offset.zero,
                             title: 'Minha marca',
-                            snippet: "Marca de algum lugar aí",
+                            snippet: 'Marca de algum lugar aí\n' +
+                                'MaisCoisaEscrita',
                             onTap: () {
                               Navigator.push(
                                 context,
@@ -88,20 +103,22 @@ class _MyHomePageState extends State<MyHomePage> {
                   alignment: Alignment.bottomCenter,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.end,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Padding(
                         padding:
                             EdgeInsets.symmetric(horizontal: phoneW * 0.04),
                         child: Container(
-                          height: phoneH * 0.08,
+                          height: phoneH * 0.06,
                           width: phoneW * 0.7,
                           child: Card(
+                            elevation: 4.0,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(25.0),
                             ),
                             child: Padding(
-                              padding: const EdgeInsets.only(
-                                  bottom: 19.0, right: 15, left: 15),
+                              padding: EdgeInsets.only(
+                                  bottom: 15, right: 15, left: 15),
                               child: TextField(
                                 style:
                                     TextStyle(decoration: TextDecoration.none),
@@ -121,8 +138,9 @@ class _MyHomePageState extends State<MyHomePage> {
                         ),
                       ),
                       Padding(
-                        padding: const EdgeInsets.only(right: 20.0, bottom: 20),
+                        padding: EdgeInsets.only(right: 20.0, bottom: 20),
                         child: FloatingActionButton(
+                          elevation: 6.0,
                           child: Icon(Icons.gps_fixed),
                           onPressed: () {},
                         ),
