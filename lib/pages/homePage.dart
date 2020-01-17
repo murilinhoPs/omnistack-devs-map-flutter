@@ -8,7 +8,6 @@ import 'package:oministack_flutter_app/services/http_response.dart';
 
 import 'webViewPage.dart';
 
-
 class MyHomePage extends StatefulWidget {
   @override
   _MyHomePageState createState() => _MyHomePageState();
@@ -27,17 +26,18 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Geolocator _geolocator = Geolocator();
 
-  // _goToMyPos() async {
-  //   final GoogleMapController controller = await _controller.future;
-  //   controller.animateCamera(CameraUpdate.newCameraPosition(_kGooglePlex));
-  // }
+  _goToMyPos() async {
+    //await _getMyPos();
+    final GoogleMapController controller = await _controller.future;
+    controller.animateCamera(CameraUpdate.newCameraPosition(_kGooglePlex));
+  }
 
   _getMyPos() async {
     await _geolocator.checkGeolocationPermissionStatus();
     var currentLocation = await _geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.best);
 
-    //setState(() {
+    setState(() {
       minhaPosicao = currentLocation;
       _kGooglePlex = CameraPosition(
         target: LatLng(minhaPosicao.latitude, minhaPosicao.longitude),
@@ -45,15 +45,12 @@ class _MyHomePageState extends State<MyHomePage> {
       );
 
       print(_kGooglePlex);
-    //});
+    });
   }
 
   _populateMarkers() async {
     final apiRes = await _apiConnection.fetchDevs();
     setState(() {
-
-      _getMyPos();
-      
       _markers.clear();
 
       for (var data in apiRes) {
@@ -63,7 +60,36 @@ class _MyHomePageState extends State<MyHomePage> {
             data.location.coordinates[1],
             data.location.coordinates[0],
           ),
-          infoWindow: InfoWindow(    
+          infoWindow: InfoWindow(
+              title: data.name,
+              snippet: '${data.techs.join(', ')}',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  CupertinoPageRoute(
+                      builder: (context) => Perfil(
+                          url: 'https://github.com/${data.githubUsername}')),
+                );
+              }),
+        );
+        _markers[data.sId] = m;
+      }
+    });
+  }
+
+  _filterMarkers(techs, lat, lon) async {
+    final apiRes = await _apiConnection.filterDevs(techs, lat, lon);
+    setState(() {
+      _markers.clear();
+
+      for (var data in apiRes) {
+        final m = Marker(
+          markerId: MarkerId(data.sId),
+          position: LatLng(
+            data.location.coordinates[1],
+            data.location.coordinates[0],
+          ),
+          infoWindow: InfoWindow(
               title: data.name,
               snippet: '${data.techs.join(', ')}',
               onTap: () {
@@ -89,7 +115,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     final phoneW = MediaQuery.of(context).size.width;
-    final phoneH = MediaQuery.of(context).size.height;
+    //final phoneH = MediaQuery.of(context).size.height;
 
     return Scaffold(
       appBar: AppBar(
@@ -106,11 +132,13 @@ class _MyHomePageState extends State<MyHomePage> {
                 GoogleMap(
                   mapType: MapType.normal,
                   zoomGesturesEnabled: true,
-                  myLocationButtonEnabled: true,
+                  myLocationButtonEnabled: false,
+                  myLocationEnabled: true,
                   buildingsEnabled: true,
-                  onTap: (_) async{
+                  onTap: (_) async {
                     //print(_.latitude + _.longitude);
-                   //await _goToMyPos();
+                    await _goToMyPos();
+                    //_apiConnection.filterDevs();
                   },
                   markers: _markers.values.toSet(),
                   initialCameraPosition: _kGooglePlex,
@@ -128,7 +156,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         padding:
                             EdgeInsets.symmetric(horizontal: phoneW * 0.04),
                         child: Container(
-                          height: phoneH * 0.06,
+                          height: 50,
                           width: phoneW * 0.7,
                           child: Card(
                             elevation: 4.0,
@@ -139,18 +167,27 @@ class _MyHomePageState extends State<MyHomePage> {
                               padding: EdgeInsets.only(
                                   bottom: 15, right: 15, left: 15),
                               child: TextField(
+                                showCursor: true,
+                                cursorColor: Colors.deepPurple,
                                 style:
                                     TextStyle(decoration: TextDecoration.none),
                                 decoration: InputDecoration(
                                     contentPadding: EdgeInsets.symmetric(
-                                        horizontal: phoneW * 0.05,
-                                        vertical: phoneH * 0.0105),
+                                        horizontal: 5, vertical: 9),
                                     border: InputBorder.none,
                                     hintStyle: TextStyle(
                                         fontSize: 13,
                                         color: Colors.grey,
                                         fontStyle: FontStyle.italic),
                                     hintText: 'Buscar por tecnologias...'),
+                                onSubmitted: (value) {
+                                  _filterMarkers(
+                                      value,
+                                      // value.replaceFirst(
+                                      //     value[0], value[0].toUpperCase()),
+                                      minhaPosicao.latitude,
+                                      minhaPosicao.longitude);
+                                },
                               ),
                             ),
                           ),
@@ -164,6 +201,9 @@ class _MyHomePageState extends State<MyHomePage> {
                           onPressed: () async {
                             await _apiConnection.fetchDevs();
                             _populateMarkers();
+                            //TODO: Adicionar controller no text field. Se tiver coisa escrita
+                            // chama o metodo _filter, se não tiver nada chama o _populate
+                            // _filterMarkers(null, null, null);
                           },
                         ),
                       )

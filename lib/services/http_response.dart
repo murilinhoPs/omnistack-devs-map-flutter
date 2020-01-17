@@ -4,10 +4,10 @@ import 'dart:async';
 import 'dart:convert';
 
 class ApiConnection {
-  String baseUrl = 'http://192.180.0.102:3333/devs';
+  String baseUrl = 'http://192.168.0.102:3333';
 
   Future<List<DevProfile>> fetchDevs() async {
-    Response _response = await get('http://192.168.0.102:3333/devs');
+    Response _response = await get('$baseUrl/devs');
 
     if (_response.statusCode == 200) {
       List<dynamic> jsonResponse = json.decode(_response.body);
@@ -24,5 +24,29 @@ class ApiConnection {
     } else {
       throw "Can't get posts.";
     }
+  }
+
+  Future<List<DevProfile>> filterDevs(techs, lat, lon) async {
+    // var lat = '-23.5305438';
+    // var lon = '-46.707409';
+    // String techs = 'Flutter';
+    Response _response =
+        await get('$baseUrl/search?techs=$techs&latitude=$lat&longitude=$lon');
+
+    if (_response.statusCode == 200) {
+      List<dynamic> jsonResponse = json.decode(_response.body);
+
+      List<DevProfile> devs = jsonResponse
+          .map(
+            (item) => (DevProfile.fromJson(item)),
+          )
+          .toList();
+
+      //print(jsonResponse);
+      print(_response.body);
+      return devs;
+    }
+
+   
   }
 }
