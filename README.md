@@ -21,3 +21,6 @@ Thanks, and feel free to take a look into this project.
 
 
 
+![Image of homeScreen](https://cdn.discordapp.com/attachments/572841858179399683/667539505515069480/Screenshot_20200116-222238.jpg)
+
+![Image of profileScreen](https://cdn.discordapp.com/attachments/572841858179399683/667539505971986432/Screenshot_20200116-222247.jpg)
