@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:http/http.dart';
 import 'package:oministack_flutter_app/services/http_response.dart';
 
 import 'webViewPage.dart';
@@ -25,6 +28,8 @@ class _MyHomePageState extends State<MyHomePage> {
   Completer<GoogleMapController> _controller = Completer();
 
   Geolocator _geolocator = Geolocator();
+
+  TextEditingController _textController = TextEditingController();
 
   _goToMyPos() async {
     //await _getMyPos();
@@ -48,62 +53,62 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  _allMarks(apiRes) async {
+    for (var data in apiRes) {
+
+      final avatarRes = await get(data.avatarUrl);
+
+      final imageCodec =
+          await instantiateImageCodec(avatarRes.bodyBytes, targetWidth: 80);
+
+      final FrameInfo frameInfo = await imageCodec.getNextFrame();
+
+      final ByteData byteData =
+          await frameInfo.image.toByteData(format: ImageByteFormat.png);
+
+      final resizedImage = byteData.buffer.asUint8List();
+
+      var _renderIcon = BitmapDescriptor.fromBytes(resizedImage);
+
+      print(data.avatarUrl);
+
+      final m = Marker(
+        icon: _renderIcon,
+        markerId: MarkerId(data.sId),
+        position: LatLng(
+          data.location.coordinates[1],
+          data.location.coordinates[0],
+        ),
+        infoWindow: InfoWindow(
+            title: data.name,
+            snippet: '${data.techs.join(', ')}',
+            onTap: () {
+              Navigator.push(
+                context,
+                CupertinoPageRoute(
+                    builder: (context) => Perfil(
+                        url: 'https://github.com/${data.githubUsername}')),
+              );
+            }),
+      );
+      _markers[data.sId] = m;
+    }
+  }
+
   _populateMarkers() async {
     final apiRes = await _apiConnection.fetchDevs();
-    setState(() {
-      _markers.clear();
 
-      for (var data in apiRes) {
-        final m = Marker(
-          markerId: MarkerId(data.sId),
-          position: LatLng(
-            data.location.coordinates[1],
-            data.location.coordinates[0],
-          ),
-          infoWindow: InfoWindow(
-              title: data.name,
-              snippet: '${data.techs.join(', ')}',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  CupertinoPageRoute(
-                      builder: (context) => Perfil(
-                          url: 'https://github.com/${data.githubUsername}')),
-                );
-              }),
-        );
-        _markers[data.sId] = m;
-      }
-    });
+    await _allMarks(apiRes);
+
+    setState(() {});
   }
 
   _filterMarkers(techs, lat, lon) async {
     final apiRes = await _apiConnection.filterDevs(techs, lat, lon);
-    setState(() {
-      _markers.clear();
 
-      for (var data in apiRes) {
-        final m = Marker(
-          markerId: MarkerId(data.sId),
-          position: LatLng(
-            data.location.coordinates[1],
-            data.location.coordinates[0],
-          ),
-          infoWindow: InfoWindow(
-              title: data.name,
-              snippet: '${data.techs.join(', ')}',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  CupertinoPageRoute(
-                      builder: (context) => Perfil(
-                          url: 'https://github.com/${data.githubUsername}')),
-                );
-              }),
-        );
-        _markers[data.sId] = m;
-      }
-    });
+    await _allMarks(apiRes);
+
+    setState(() {});
   }
 
   @override
@@ -135,10 +140,8 @@ class _MyHomePageState extends State<MyHomePage> {
                   myLocationButtonEnabled: false,
                   myLocationEnabled: true,
                   buildingsEnabled: true,
-                  onTap: (_) async {
-                    //print(_.latitude + _.longitude);
-                    await _goToMyPos();
-                    //_apiConnection.filterDevs();
+                  onTap: (_) {
+                    _goToMyPos();
                   },
                   markers: _markers.values.toSet(),
                   initialCameraPosition: _kGooglePlex,
@@ -167,6 +170,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               padding: EdgeInsets.only(
                                   bottom: 15, right: 15, left: 15),
                               child: TextField(
+                                controller: _textController,
                                 showCursor: true,
                                 cursorColor: Colors.deepPurple,
                                 style:
@@ -180,13 +184,17 @@ class _MyHomePageState extends State<MyHomePage> {
                                         color: Colors.grey,
                                         fontStyle: FontStyle.italic),
                                     hintText: 'Buscar por tecnologias...'),
-                                onSubmitted: (value) {
-                                  _filterMarkers(
-                                      value,
+                                onSubmitted: (value) async {
+                                  _markers.clear();
+
+                                  await _filterMarkers(
+                                      _textController.text,
                                       // value.replaceFirst(
                                       //     value[0], value[0].toUpperCase()),
                                       minhaPosicao.latitude,
                                       minhaPosicao.longitude);
+
+                                  _textController.clear();
                                 },
                               ),
                             ),
@@ -198,12 +206,17 @@ class _MyHomePageState extends State<MyHomePage> {
                         child: FloatingActionButton(
                           elevation: 6.0,
                           child: Icon(Icons.gps_fixed),
-                          onPressed: () async {
-                            await _apiConnection.fetchDevs();
-                            _populateMarkers();
-                            //TODO: Adicionar controller no text field. Se tiver coisa escrita
-                            // chama o metodo _filter, se não tiver nada chama o _populate
-                            // _filterMarkers(null, null, null);
+                          onPressed: () {
+                            _markers.clear();
+
+                            _textController.text == ''
+                                ? _populateMarkers()
+                                : _filterMarkers(
+                                    _textController.text,
+                                    minhaPosicao.latitude,
+                                    minhaPosicao.longitude);
+
+                            _textController.clear();
                           },
                         ),
                       )
