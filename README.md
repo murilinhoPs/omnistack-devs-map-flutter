@@ -21,6 +21,13 @@ Thanks, and feel free to take a look into this project.
 
 
 
-<img src="https://cdn.discordapp.com/attachments/572841858179399683/667539505515069480/Screenshot_20200116-222238.jpg" alt="drawing" width="365" height="670"/>
+
+<img src="https://1drv.ms/v/s!Ap7eUZGC3gUwgZMtdTcrlES_DHmdQg?e=Doqjcl" alt="drawing" width="365" height="670"/>
+
+<img src="https://1drv.ms/u/s!Ap7eUZGC3gUwgZMumd0a7Lnf_fY_5w?e=ZbNlAf" alt="drawing" width="365" height="670"/>
 
 <img src="https://cdn.discordapp.com/attachments/572841858179399683/667539505971986432/Screenshot_20200116-222247.jpg" alt="drawing" width="365" height="670"/>
+
+
+
+
