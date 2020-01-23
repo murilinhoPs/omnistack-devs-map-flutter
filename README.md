@@ -8,6 +8,12 @@
 
 <p align="center">DevRadar mobile app of the OmniStack Week 10 from rocketseat, that I'm making using flutter. </p>
 
+<p align="center">
+  <a href="https://opensource.org/licenses/MIT">
+    <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License MIT">
+  </a>
+</p>
+
 <div >
    <img  width="225">
 <img align="center" src="https://i.pinimg.com/564x/d5/73/f7/d573f7b5363fb1d55e24040ccc0bc3ab.jpg" alt="drawing" height="450"/>
