@@ -24,9 +24,7 @@ class DevProfile {
       name: json['name'],
       avatarUrl: json['avatar_url'],
       bio: json['bio'],
-      location: json['location'] != null
-          ? new Location.fromJson(json['location'])
-          : null,
+      location: json['location'] != null ? new Location.fromJson(json['location']) : null,
     );
   }
 }

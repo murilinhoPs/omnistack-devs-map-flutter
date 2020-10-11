@@ -3,13 +3,12 @@ import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:http/http.dart';
-import 'package:oministack_flutter_app/services/http_response.dart';
-
-import 'webViewPage.dart';
+import 'package:oministack_flutter_app/cubit/k_google_plex_cubit.dart';
+import 'package:oministack_flutter_app/cubit/map_marks_cubit.dart';
+import 'package:oministack_flutter_app/cubit/my_position_cubit.dart';
 
 class MyHomePage extends StatefulWidget {
   @override
@@ -17,111 +16,58 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  ApiConnection _apiConnection = ApiConnection();
-
-  Position minhaPosicao;
-
   CameraPosition _kGooglePlex;
-
-  Map<String, Marker> _markers = {};
 
   Completer<GoogleMapController> _controller = Completer();
 
-  Geolocator _geolocator = Geolocator();
+  LocationPermission _permission;
 
   TextEditingController _textController = TextEditingController();
 
   _goToMyPos() async {
-    //await _getMyPos();
     final GoogleMapController controller = await _controller.future;
-    controller.animateCamera(CameraUpdate.newCameraPosition(_kGooglePlex));
+    controller.animateCamera(
+      CameraUpdate.newCameraPosition(_kGooglePlex),
+    );
   }
 
   _getMyPos() async {
-    await _geolocator.checkGeolocationPermissionStatus();
-    var currentLocation = await _geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.best);
+    final _myPositionCubit = context.bloc<MyPositionCubit>();
 
-    setState(() {
-      minhaPosicao = currentLocation;
-      _kGooglePlex = CameraPosition(
-        target: LatLng(minhaPosicao.latitude, minhaPosicao.longitude),
-        zoom: 16.0,
-      );
+    _permission = await requestPermission();
 
-      print(_kGooglePlex);
-    });
-  }
+    _permission = await checkPermission();
 
-  _allMarks(apiRes) async {
-    for (var data in apiRes) {
+    if (_permission != LocationPermission.denied ||
+        _permission != LocationPermission.deniedForever) {
+      await _myPositionCubit.getMyPostion();
 
-      final avatarRes = await get(data.avatarUrl);
+      setState(() {
+        _kGooglePlex = CameraPosition(
+          target: LatLng(_myPositionCubit.state.latitude, _myPositionCubit.state.longitude),
+          zoom: 16.0,
+        );
+      });
 
-      final imageCodec =
-          await instantiateImageCodec(avatarRes.bodyBytes, targetWidth: 80);
-
-      final FrameInfo frameInfo = await imageCodec.getNextFrame();
-
-      final ByteData byteData =
-          await frameInfo.image.toByteData(format: ImageByteFormat.png);
-
-      final resizedImage = byteData.buffer.asUint8List();
-
-      var _renderIcon = BitmapDescriptor.fromBytes(resizedImage);
-
-      print(data.avatarUrl);
-
-      final m = Marker(
-        icon: _renderIcon,
-        markerId: MarkerId(data.sId),
-        position: LatLng(
-          data.location.coordinates[1],
-          data.location.coordinates[0],
-        ),
-        infoWindow: InfoWindow(
-            title: data.name,
-            snippet: '${data.techs.join(', ')}',
-            onTap: () {
-              Navigator.push(
-                context,
-                CupertinoPageRoute(
-                    builder: (context) => Perfil(
-                        url: 'https://github.com/${data.githubUsername}')),
-              );
-            }),
-      );
-      _markers[data.sId] = m;
+      // await context.bloc<KGooglePlexCubit>().setKGoogolePlexPos(context);
     }
   }
 
-  _populateMarkers() async {
-    final apiRes = await _apiConnection.fetchDevs();
+  initStateAsync() async {
+    await _getMyPos();
 
-    await _allMarks(apiRes);
-
-    setState(() {});
-  }
-
-  _filterMarkers(techs, lat, lon) async {
-    final apiRes = await _apiConnection.filterDevs(techs, lat, lon);
-
-    await _allMarks(apiRes);
-
-    setState(() {});
+    context.bloc<MapMarksCubit>().populateMarkers();
   }
 
   @override
   void initState() {
-    _getMyPos();
+    initStateAsync();
+
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    final phoneW = MediaQuery.of(context).size.width;
-    //final phoneH = MediaQuery.of(context).size.height;
-
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -130,101 +76,114 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
         centerTitle: true,
       ),
-      body: minhaPosicao == null
-          ? Center(child: CircularProgressIndicator())
-          : Stack(
+      body: BlocBuilder<MyPositionCubit, Position>(
+        builder: (_, position) {
+          if (position == null)
+            return Center(child: CircularProgressIndicator());
+          else
+            return Stack(
               children: <Widget>[
-                GoogleMap(
-                  mapType: MapType.normal,
-                  zoomGesturesEnabled: true,
-                  myLocationButtonEnabled: false,
-                  myLocationEnabled: true,
-                  buildingsEnabled: true,
-                  onTap: (_) {
-                    _goToMyPos();
-                  },
-                  markers: _markers.values.toSet(),
-                  initialCameraPosition: _kGooglePlex,
-                  onMapCreated: (GoogleMapController controller) {
-                    _controller.complete(controller);
-                  },
-                ),
+                googleMap(context),
                 Align(
                   alignment: Alignment.bottomCenter,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      Padding(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: phoneW * 0.04),
-                        child: Container(
-                          height: 50,
-                          width: phoneW * 0.7,
-                          child: Card(
-                            elevation: 4.0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(25.0),
-                            ),
-                            child: Padding(
-                              padding: EdgeInsets.only(
-                                  bottom: 15, right: 15, left: 15),
-                              child: TextField(
-                                controller: _textController,
-                                showCursor: true,
-                                cursorColor: Colors.deepPurple,
-                                style:
-                                    TextStyle(decoration: TextDecoration.none),
-                                decoration: InputDecoration(
-                                    contentPadding: EdgeInsets.symmetric(
-                                        horizontal: 5, vertical: 9),
-                                    border: InputBorder.none,
-                                    hintStyle: TextStyle(
-                                        fontSize: 13,
-                                        color: Colors.grey,
-                                        fontStyle: FontStyle.italic),
-                                    hintText: 'Buscar por tecnologias...'),
-                                onSubmitted: (value) async {
-                                  _markers.clear();
-
-                                  await _filterMarkers(
-                                      _textController.text,
-                                      // value.replaceFirst(
-                                      //     value[0], value[0].toUpperCase()),
-                                      minhaPosicao.latitude,
-                                      minhaPosicao.longitude);
-
-                                  _textController.clear();
-                                },
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.only(right: 20.0, bottom: 20),
-                        child: FloatingActionButton(
-                          elevation: 6.0,
-                          child: Icon(Icons.gps_fixed),
-                          onPressed: () {
-                            _markers.clear();
-
-                            _textController.text == ''
-                                ? _populateMarkers()
-                                : _filterMarkers(
-                                    _textController.text,
-                                    minhaPosicao.latitude,
-                                    minhaPosicao.longitude);
-
-                            _textController.clear();
-                          },
-                        ),
-                      )
+                      searchField(context, position: position),
+                      searchFloatingButton(context, position: position),
                     ],
                   ),
-                )
+                ),
               ],
+            );
+        },
+      ),
+    );
+  }
+
+  Widget googleMap(BuildContext context) {
+    // return BlocBuilder<KGooglePlexCubit, CameraPosition>(
+    //   builder: (_, _kGooglePlex) {
+    return BlocBuilder<MapMarksCubit, Map<String, Marker>>(builder: (_, mapMarkers) {
+      print(mapMarkers);
+      return GoogleMap(
+        mapType: MapType.normal,
+        zoomGesturesEnabled: true,
+        myLocationButtonEnabled: false,
+        myLocationEnabled: true,
+        buildingsEnabled: true,
+        zoomControlsEnabled: false,
+        onTap: (_) => _goToMyPos(),
+        markers: mapMarkers.values.toSet(),
+        initialCameraPosition: _kGooglePlex,
+        onMapCreated: (GoogleMapController controller) {
+          _controller.complete(controller);
+        },
+      );
+    });
+    //   },
+    // );
+  }
+
+  Widget searchField(BuildContext context, {@required Position position}) {
+    final phoneW = MediaQuery.of(context).size.width;
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: phoneW * 0.04),
+      child: Container(
+        height: 50,
+        width: phoneW * 0.7,
+        child: Card(
+          elevation: 4.0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(25.0),
+          ),
+          child: Padding(
+            padding: EdgeInsets.only(bottom: 15, right: 15, left: 15),
+            child: TextField(
+              controller: _textController,
+              showCursor: true,
+              cursorColor: Colors.deepPurple,
+              style: TextStyle(decoration: TextDecoration.none),
+              decoration: InputDecoration(
+                  contentPadding: EdgeInsets.symmetric(horizontal: 5, vertical: 9),
+                  border: InputBorder.none,
+                  hintStyle:
+                      TextStyle(fontSize: 13, color: Colors.grey, fontStyle: FontStyle.italic),
+                  hintText: 'Buscar por tecnologias...'),
+              onSubmitted: (value) async {
+                if (_textController.text != '' || _textController.text != null) {
+                  context.bloc<MapMarksCubit>().state.clear();
+
+                  await context.bloc<MapMarksCubit>().filterMarkers(
+                      _textController.text.toLowerCase(), position.latitude, position.longitude);
+                }
+              },
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget searchFloatingButton(BuildContext context, {@required Position position}) {
+    final mapMarks = context.bloc<MapMarksCubit>();
+
+    return Padding(
+      padding: EdgeInsets.only(right: 20.0, bottom: 20),
+      child: FloatingActionButton(
+        elevation: 6.0,
+        child: Icon(Icons.gps_fixed),
+        onPressed: () async {
+          mapMarks.state.clear();
+
+          _textController.text == '' || _textController.text == null
+              ? await mapMarks.populateMarkers()
+              : await mapMarks.filterMarkers(
+                  _textController.text.toLowerCase(), position.latitude, position.longitude);
+        },
+      ),
     );
   }
 }

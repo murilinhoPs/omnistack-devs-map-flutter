@@ -18,8 +18,6 @@ class ApiConnection {
           )
           .toList();
 
-      //print(jsonResponse);
-
       return devs;
     } else {
       throw "Can't get posts.";
@@ -27,11 +25,7 @@ class ApiConnection {
   }
 
   Future<List<DevProfile>> filterDevs(techs, lat, lon) async {
-    // var lat = '-23.5305438';
-    // var lon = '-46.707409';
-    // String techs = 'Flutter';
-    Response _response =
-        await get('$baseUrl/search?techs=$techs&latitude=$lat&longitude=$lon');
+    Response _response = await get('$baseUrl/search?techs=$techs&latitude=$lat&longitude=$lon');
 
     if (_response.statusCode == 200) {
       List<dynamic> jsonResponse = json.decode(_response.body);
@@ -42,11 +36,9 @@ class ApiConnection {
           )
           .toList();
 
-      //print(jsonResponse);
-      print(_response.body);
       return devs;
+    } else {
+      throw "Can't get posts.";
     }
-
-   
   }
 }
