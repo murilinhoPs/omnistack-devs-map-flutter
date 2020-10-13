@@ -18,10 +18,6 @@ class PictureMark {
         onTap: () {
           Get.to(Perfil(url: 'https://github.com/${data.githubUsername}'),
               transition: Transition.cupertino);
-          // navigator.push(
-          //   CupertinoPageRoute(
-          //       builder: (_) => Perfil(url: 'https://github.com/${data.githubUsername}')),
-          // );
         },
       ),
     );
