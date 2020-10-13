@@ -13,7 +13,7 @@ class MyApp extends StatelessWidget {
     return GetMaterialApp(
       popGesture: true,
       debugShowCheckedModeBanner: false,
-      title: 'Flutter Demo',
+      title: 'Flutter map devs',
       theme: ThemeData(
         primarySwatch: Colors.deepPurple,
       ),
