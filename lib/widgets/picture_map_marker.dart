@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:oministack_flutter_app/models/dev_model.dart';
@@ -17,10 +16,12 @@ class PictureMark {
         title: data.name,
         snippet: '${data.techs.join(', ')}',
         onTap: () {
-          navigator.push(
-            CupertinoPageRoute(
-                builder: (_) => Perfil(url: 'https://github.com/${data.githubUsername}')),
-          );
+          Get.to(Perfil(url: 'https://github.com/${data.githubUsername}'),
+              transition: Transition.cupertino);
+          // navigator.push(
+          //   CupertinoPageRoute(
+          //       builder: (_) => Perfil(url: 'https://github.com/${data.githubUsername}')),
+          // );
         },
       ),
     );

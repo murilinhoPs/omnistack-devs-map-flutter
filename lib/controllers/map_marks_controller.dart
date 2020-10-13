@@ -5,7 +5,7 @@ import 'package:oministack_flutter_app/services/http_response.dart';
 import 'package:oministack_flutter_app/services/image_url_to_bitmap.dart';
 import 'package:oministack_flutter_app/widgets/picture_map_marker.dart';
 
-import 'api_controller_cubit.dart';
+import 'api_controller_controller.dart';
 
 class MapMarksCubit extends GetxController {
   final markers = Map<String, Marker>().obs;
@@ -30,15 +30,15 @@ class MapMarksCubit extends GetxController {
   populateMarkers() async {
     markers.clear();
 
-    var apiRes = await _apiConnection.fetchDevs();
+    var apiRes = await _apiConnection.fetchDevs(false);
 
     await _getAllMarks(apiRes);
   }
 
-  filterMarkers(techs, lat, lon) async {
+  filterMarkers(String techs, double lat, double lon) async {
     markers.clear();
 
-    var apiRes = await _apiConnection.filterDevs(techs, lat, lon);
+    var apiRes = await _apiConnection.fetchDevs(true, techs: techs, latitude: lat, longitude: lon);
 
     await _getAllMarks(apiRes);
   }

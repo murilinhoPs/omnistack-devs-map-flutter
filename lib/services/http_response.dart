@@ -1,6 +1,6 @@
 import 'package:get/get.dart';
 import 'package:http/http.dart';
-import 'package:oministack_flutter_app/cubit/api_controller_cubit.dart';
+import 'package:oministack_flutter_app/controllers/api_controller_controller.dart';
 import 'package:oministack_flutter_app/models/dev_model.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -10,47 +10,44 @@ class ApiConnection {
 
   final _apiController = Get.find<ApiControllerCubit>();
 
-  Future<List<DevProfile>> fetchDevs() async {
+  Future<List<DevProfile>> fetchDevs(bool filter,
+      {String techs, double latitude, double longitude}) async {
     _apiController.changeState(FetchState.isLoading);
 
-    Response _response = await get('$baseUrl/devs');
+    String fetchUrl = '$baseUrl/devs';
 
-    if (_response.statusCode == 200) {
-      List<dynamic> jsonResponse = json.decode(_response.body);
+    String filterUrl = '$baseUrl/search?techs=$techs&latitude=$latitude&longitude=$longitude';
 
-      List<DevProfile> devs = jsonResponse
-          .map(
-            (item) => (DevProfile.fromJson(item)),
-          )
-          .toList();
+    try {
+      Response _response = await get(filter ? filterUrl : fetchUrl).timeout(
+        Duration(seconds: 20),
+        onTimeout: () {
+          _apiController.changeState(FetchState.errorLoading);
+          return;
+        },
+      );
 
-      return devs;
-    } else {
-      _apiController.changeState(FetchState.errorLoading);
+      if (_response.statusCode == 200) {
+        List<dynamic> jsonResponse = json.decode(_response.body);
 
-      throw "Can't get devs.";
-    }
-  }
+        List<DevProfile> devs = jsonResponse
+            .map(
+              (item) => (DevProfile.fromJson(item)),
+            )
+            .toList();
 
-  Future<List<DevProfile>> filterDevs(techs, lat, lon) async {
-    _apiController.changeState(FetchState.isLoading);
+        return devs;
+      } else {
+        _apiController.changeState(FetchState.errorLoading);
 
-    Response _response = await get('$baseUrl/search?techs=$techs&latitude=$lat&longitude=$lon');
+        throw "Can't get devs on server";
+      }
+    } catch (e) {
+      Future.delayed(Duration(seconds: 5), () {
+        _apiController.changeState(FetchState.errorLoading);
+      });
 
-    if (_response.statusCode == 200) {
-      List<dynamic> jsonResponse = json.decode(_response.body);
-
-      List<DevProfile> devs = jsonResponse
-          .map(
-            (item) => (DevProfile.fromJson(item)),
-          )
-          .toList();
-
-      return devs;
-    } else {
-      _apiController.changeState(FetchState.errorLoading);
-
-      throw "Can't get devs.";
+      throw "Can't get devs " + e.message;
     }
   }
 }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'cubit/api_controller_cubit.dart';
+import 'controllers/api_controller_controller.dart';
 import 'pages/homePage.dart';
 
 void main() => runApp(MyApp());
@@ -10,7 +10,8 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return GetMaterialApp(
+      popGesture: true,
       debugShowCheckedModeBanner: false,
       title: 'Flutter Demo',
       theme: ThemeData(
