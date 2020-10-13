@@ -1,21 +1,21 @@
-import 'package:bloc/bloc.dart';
+import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:oministack_flutter_app/models/dev_model.dart';
 import 'package:oministack_flutter_app/services/http_response.dart';
 import 'package:oministack_flutter_app/services/image_url_to_bitmap.dart';
 import 'package:oministack_flutter_app/widgets/picture_map_marker.dart';
 
-class MapMarksCubit extends Cubit<Map<String, Marker>> {
-  MapMarksCubit() : super(markers);
+import 'api_controller_cubit.dart';
 
-  static Map<String, Marker> markers = {};
+class MapMarksCubit extends GetxController {
+  final markers = Map<String, Marker>().obs;
 
   final _apiConnection = ApiConnection();
 
   final imageToBitmap = ImageUrlToBitmap();
   final picMark = PictureMark();
 
-  _getAllMarks(List<DevProfile> apiRes) async {
+  Future<void> _getAllMarks(List<DevProfile> apiRes) async {
     for (var data in apiRes) {
       final _renderIcon = await imageToBitmap.avatarUrlToBitmap(data);
 
@@ -23,21 +23,23 @@ class MapMarksCubit extends Cubit<Map<String, Marker>> {
 
       markers[data.sId] = markToAdd;
     }
+
+    Get.find<ApiControllerCubit>().changeState(FetchState.finishedLoading);
   }
 
-  Future<void> populateMarkers() async {
-    final apiRes = await _apiConnection.fetchDevs();
+  populateMarkers() async {
+    markers.clear();
+
+    var apiRes = await _apiConnection.fetchDevs();
 
     await _getAllMarks(apiRes);
-
-    emit(markers);
   }
 
-  Future<void> filterMarkers(techs, lat, lon) async {
-    final apiRes = await _apiConnection.filterDevs(techs, lat, lon);
+  filterMarkers(techs, lat, lon) async {
+    markers.clear();
+
+    var apiRes = await _apiConnection.filterDevs(techs, lat, lon);
 
     await _getAllMarks(apiRes);
-
-    emit(markers);
   }
 }

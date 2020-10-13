@@ -1,14 +1,15 @@
-import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:get/state_manager.dart';
 import 'package:oministack_flutter_app/cubit/k_google_plex_cubit.dart';
 import 'package:oministack_flutter_app/cubit/map_marks_cubit.dart';
 import 'package:oministack_flutter_app/cubit/my_position_cubit.dart';
+import 'package:get/get.dart';
+import 'package:oministack_flutter_app/widgets/api_state_widget.dart';
+import 'package:oministack_flutter_app/widgets/google_map_view.dart';
 
 class MyHomePage extends StatefulWidget {
   @override
@@ -16,54 +17,24 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  CameraPosition _kGooglePlex;
+  final positionController = Get.put(MyPositionCubit());
 
-  Completer<GoogleMapController> _controller = Completer();
+  final mapMarkersController = Get.put(MapMarksCubit());
 
-  LocationPermission _permission;
+  final kGoogleCamera = Get.put(KGooglePlexCubit());
 
   TextEditingController _textController = TextEditingController();
 
-  _goToMyPos() async {
-    final GoogleMapController controller = await _controller.future;
-    controller.animateCamera(
-      CameraUpdate.newCameraPosition(_kGooglePlex),
-    );
-  }
-
-  _getMyPos() async {
-    final _myPositionCubit = context.bloc<MyPositionCubit>();
-
-    _permission = await requestPermission();
-
-    _permission = await checkPermission();
-
-    if (_permission != LocationPermission.denied ||
-        _permission != LocationPermission.deniedForever) {
-      await _myPositionCubit.getMyPostion();
-
-      setState(() {
-        _kGooglePlex = CameraPosition(
-          target: LatLng(_myPositionCubit.state.latitude, _myPositionCubit.state.longitude),
-          zoom: 16.0,
-        );
-      });
-
-      // await context.bloc<KGooglePlexCubit>().setKGoogolePlexPos(context);
-    }
-  }
-
   initStateAsync() async {
-    await _getMyPos();
+    await kGoogleCamera.setKGooglePlexPos();
 
-    context.bloc<MapMarksCubit>().populateMarkers();
+    mapMarkersController.populateMarkers();
   }
 
   @override
   void initState() {
-    initStateAsync();
-
     super.initState();
+    initStateAsync();
   }
 
   @override
@@ -76,54 +47,24 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
         centerTitle: true,
       ),
-      body: BlocBuilder<MyPositionCubit, Position>(
-        builder: (_, position) {
-          if (position == null)
-            return Center(child: CircularProgressIndicator());
-          else
-            return Stack(
+      body: Stack(
+        children: <Widget>[
+          Mapa(),
+          ApiStateWidget(),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                googleMap(context),
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      searchField(context, position: position),
-                      searchFloatingButton(context, position: position),
-                    ],
-                  ),
-                ),
+                searchField(context, position: positionController.currentPosition.value),
+                searchFloatingButton(context, position: positionController.currentPosition.value),
               ],
-            );
-        },
+            ),
+          ),
+        ],
       ),
     );
-  }
-
-  Widget googleMap(BuildContext context) {
-    // return BlocBuilder<KGooglePlexCubit, CameraPosition>(
-    //   builder: (_, _kGooglePlex) {
-    return BlocBuilder<MapMarksCubit, Map<String, Marker>>(builder: (_, mapMarkers) {
-      print(mapMarkers);
-      return GoogleMap(
-        mapType: MapType.normal,
-        zoomGesturesEnabled: true,
-        myLocationButtonEnabled: false,
-        myLocationEnabled: true,
-        buildingsEnabled: true,
-        zoomControlsEnabled: false,
-        onTap: (_) => _goToMyPos(),
-        markers: mapMarkers.values.toSet(),
-        initialCameraPosition: _kGooglePlex,
-        onMapCreated: (GoogleMapController controller) {
-          _controller.complete(controller);
-        },
-      );
-    });
-    //   },
-    // );
   }
 
   Widget searchField(BuildContext context, {@required Position position}) {
@@ -152,12 +93,12 @@ class _MyHomePageState extends State<MyHomePage> {
                   hintStyle:
                       TextStyle(fontSize: 13, color: Colors.grey, fontStyle: FontStyle.italic),
                   hintText: 'Buscar por tecnologias...'),
-              onSubmitted: (value) async {
+              onSubmitted: (value) {
                 if (_textController.text != '' || _textController.text != null) {
-                  context.bloc<MapMarksCubit>().state.clear();
-
-                  await context.bloc<MapMarksCubit>().filterMarkers(
+                  Get.find<MapMarksCubit>().filterMarkers(
                       _textController.text.toLowerCase(), position.latitude, position.longitude);
+
+                  _textController.clear();
                 }
               },
             ),
@@ -168,20 +109,25 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget searchFloatingButton(BuildContext context, {@required Position position}) {
-    final mapMarks = context.bloc<MapMarksCubit>();
+    final mapMarks = Get.find<MapMarksCubit>();
 
     return Padding(
       padding: EdgeInsets.only(right: 20.0, bottom: 20),
       child: FloatingActionButton(
         elevation: 6.0,
         child: Icon(Icons.gps_fixed),
-        onPressed: () async {
-          mapMarks.state.clear();
+        onPressed: () {
+          FocusScopeNode currentFocus = FocusScope.of(context);
+
+          if (!currentFocus.hasPrimaryFocus) {
+            currentFocus.unfocus();
+          }
 
           _textController.text == '' || _textController.text == null
-              ? await mapMarks.populateMarkers()
-              : await mapMarks.filterMarkers(
+              ? mapMarks.populateMarkers()
+              : mapMarks.filterMarkers(
                   _textController.text.toLowerCase(), position.latitude, position.longitude);
+          _textController.clear();
         },
       ),
     );

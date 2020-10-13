@@ -1,14 +1,10 @@
-import 'package:bloc/bloc.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:get/state_manager.dart';
 
-class MyPositionCubit extends Cubit<Position> {
-  MyPositionCubit() : super(currentPosition);
-
-  static Position currentPosition;
+class MyPositionCubit extends GetxController {
+  var currentPosition = Position().obs;
 
   Future<void> getMyPostion() async {
-    currentPosition = await getCurrentPosition(desiredAccuracy: LocationAccuracy.best);
-
-    emit(currentPosition);
+    currentPosition.value = await getCurrentPosition(desiredAccuracy: LocationAccuracy.best);
   }
 }
