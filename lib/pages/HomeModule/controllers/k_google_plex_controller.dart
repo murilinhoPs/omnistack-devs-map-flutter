@@ -1,8 +1,8 @@
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:oministack_flutter_app/controllers/api_controller_controller.dart';
-import 'package:oministack_flutter_app/controllers/location_permisson_controller.dart';
-import 'package:oministack_flutter_app/controllers/my_position_controller.dart';
+import 'package:oministack_flutter_app/controllers/api_state_controller.dart';
+import 'package:oministack_flutter_app/pages/HomeModule/controllers/location_permisson_controller.dart';
+import 'package:oministack_flutter_app/pages/HomeModule/controllers/my_position_controller.dart';
 
 class KGooglePlexCubit extends GetxController {
   final _myPositionCubit = Get.find<MyPositionCubit>();

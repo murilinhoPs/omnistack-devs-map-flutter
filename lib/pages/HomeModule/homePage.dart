@@ -4,12 +4,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/state_manager.dart';
-import 'package:oministack_flutter_app/controllers/k_google_plex_controller.dart';
-import 'package:oministack_flutter_app/controllers/map_marks_controller.dart';
-import 'package:oministack_flutter_app/controllers/my_position_controller.dart';
+import 'package:oministack_flutter_app/pages/HomeModule/controllers/k_google_plex_controller.dart';
+import 'package:oministack_flutter_app/pages/HomeModule/controllers/map_marks_controller.dart';
+import 'package:oministack_flutter_app/pages/HomeModule/controllers/my_position_controller.dart';
 import 'package:get/get.dart';
 import 'package:oministack_flutter_app/widgets/api_state_widget.dart';
-import 'package:oministack_flutter_app/widgets/google_map_view.dart';
+import 'package:oministack_flutter_app/pages/HomeModule/widgets/google_map_view.dart';
 
 class MyHomePage extends StatefulWidget {
   @override

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:oministack_flutter_app/controllers/api_controller_controller.dart';
+import 'package:oministack_flutter_app/controllers/api_state_controller.dart';
 
 class ApiStateWidget extends StatelessWidget {
   final apiController = Get.find<ApiControllerCubit>();
