@@ -4,7 +4,7 @@ import 'package:oministack_flutter_app/controllers/api_state_controller.dart';
 import 'package:oministack_flutter_app/pages/HomeModule/controllers/location_permisson_controller.dart';
 import 'package:oministack_flutter_app/pages/HomeModule/controllers/my_position_controller.dart';
 
-class KGooglePlexCubit extends GetxController {
+class KGooglePlexCubit {
   final _myPositionCubit = Get.find<MyPositionCubit>();
 
   final _locationPermisson = LocationPermissionController();

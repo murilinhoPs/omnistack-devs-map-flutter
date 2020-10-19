@@ -11,7 +11,6 @@ import '../../../controllers/api_state_controller.dart';
 class MapMarksCubit extends GetxController {
   final markers = Map<String, Marker>().obs;
 
-  // final _apiConnection = ApiConnection();
   final IDevsApi _devsApi = DevsApiRepository();
 
   final imageToBitmap = ImageUrlToBitmap();
